@@ -1,14 +1,33 @@
-# makefile for pdflatex
-LATEX=xelatex
+# Basename of document to generate
+SOURCE = why-so-busy
 
-why-so-busy.pdf: why-so-busy.tex
-	while ($(LATEX) $< ; \
-	grep -q "Rerun to get" why-so-busy.log ) do true ; \
-	done
+# You want latexmk to *always* run, because make does not have all the info.
+# Also, include non-file targets in .PHONY so they are run regardless of any
+# file of the given name existing.
+.PHONY: pdf presentation $(SOURCE).pdf all clean
 
-pdf: why-so-busy.pdf
-	xreader why-so-busy.pdf
+# The first rule in a Makefile is the one executed by default ("make"). It
+# should always be the "all" rule, so that "make" and "make all" are identical.
+all: pdf
+
+# MAIN LATEXMK RULE
+
+# -pdf tells latexmk to generate PDF directly (instead of DVI).
+# -pdflatex="" tells latexmk to call a specific backend with specific options.
+# -use-make tells latexmk to call make for generating missing files.
+
+# -interaction=nonstopmode keeps the pdflatex backend from stopping at a
+# missing file reference and interactively asking you for an alternative.
+
+$(SOURCE).pdf: $(SOURCE).tex
+	latexmk -pdf -pdflatex="xelatex -interaction=nonstopmode" -use-make $<
+
+pdf: $(SOURCE).pdf
+	xreader $(SOURCE).pdf
+
+presentation: $(SOURCE).pdf
+	pdfpc --duration=30 --disable-compression --disable-auto-grouping $(SOURCE).pdf
 
 clean:
-	rm -f *.pdf *.aux *.log *.out *.toc *.nav *.snm
-
+	latexmk -CA
+	rm -f $(SOURCE).run.xml $(SOURCE).bbl $(SOURCE).nav $(SOURCE).snm $(SOURCE).pdfpc
